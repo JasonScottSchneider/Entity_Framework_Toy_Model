@@ -1,4 +1,5 @@
-﻿﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+﻿﻿using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using static System.Console;
@@ -142,10 +143,68 @@ namespace WorkingWithEFCore
             }
         }
 
+        static bool AddProduct(
+        int categoryID, string productName, decimal? price)
+        {
+            using (var db = new Northwind())
+            {
+                var newProduct = new Product
+                {
+                    CategoryID = categoryID,
+                    ProductName = productName,
+                    Cost = price
+                };
+                // mark product as added in change tracking
+                db.Products.Add(newProduct);
+                // save tracked change to database
+                int affected = db.SaveChanges();
+                return (affected == 1);
+            }
+        }    
+
+        static void ListProducts()
+        {
+            using (var db = new Northwind())
+            {
+                WriteLine("{0,-3} {1,-35} {2,8} {3,5} {4}",
+                "ID", "Product Name", "Cost", "Stock", "Disc.");
+                foreach (var item in db.Products.OrderByDescending(p => p.Cost))
+                {
+                    WriteLine("{0:000} {1,-35} {2,8:$#,##0.00} {3,5} {4}",
+                    item.ProductID, item.ProductName, item.Cost,
+                    item.Stock, item.Discontinued);
+                }
+            }
+        }
+
+        static bool IncreaseProductPrice(string name, decimal amount)
+        {
+            using (var db = new Northwind())
+            {
+                // get first product whose name starts with name
+                Product updateProduct = db.Products.First(
+                p => p.ProductName.StartsWith(name));
+                updateProduct.Cost += amount;
+                int affected = db.SaveChanges();
+                return (affected == 1);
+            }
+        }
+
+        static int DeleteProducts(string name)
+        {
+            using (var db = new Northwind())
+            {
+                IEnumerable<Product> products = db.Products.Where(
+                p => p.ProductName.StartsWith(name));
+                db.Products.RemoveRange(products);
+                int affected = db.SaveChanges();
+                return affected;
+            }
+        }
 
         static void Main(string[] args)
         {
-            WriteLine("Enter 1 to query categories or enter 2 for finding a minimum for units in stock or 3 for a filtered and sorted query or 4 to search and pull up a product with partial input.");
+            WriteLine("Enter (1) for categories, (2) for units in stock, (3) for sorted and filtered query, (4) for partial word search, (5) for adding data, (6) to increase a product's cost, or (7) to delete a product.");
             string pick = ReadLine();
             int picks = int.Parse(pick);
             if (picks == 1)
@@ -164,12 +223,49 @@ namespace WorkingWithEFCore
             {
                 QueryingWithLike();
             }
-            /*
-            IQueryable<Product> prods = db.Products
-            .TagWith("Products filtered by price and sorted.")
-            .Where(product => product.Cost > price)
-            .OrderByDescending(product => product.Cost);
-            */
+            else if (picks ==5)
+            {
+                Write("Enter category: ");
+                string category_number = ReadLine();
+                int category_numbers = int.Parse(category_number);
+
+                Write("Enter new product name: ");
+                string product_name = ReadLine();
+
+                Write("Enter cost: ");
+                string product_cost = ReadLine();
+                int product_costs = int.Parse(product_cost);
+
+                if (AddProduct(category_numbers, product_name, product_costs))
+                {
+                    WriteLine("Added product successfully.");
+                }
+                ListProducts();
+            }
+            else if (picks == 6)
+            {
+                Write("Enter product name: ");
+                string product_name = ReadLine();
+
+                Write("Enter how much to increase the cost: ");
+                string increase_cost = ReadLine();
+                int increase_costs = int.Parse(increase_cost);
+
+                if (IncreaseProductPrice(product_name, increase_costs))
+                {
+                    WriteLine("Updated product price successfully.");
+                }
+                ListProducts();
+            }
+            else if (picks == 7)
+            {
+                Write("Enter product name: ");
+                string product_name = ReadLine();
+
+                int deleted = DeleteProducts(product_name);
+                WriteLine($"{deleted} product(s) were deleted.");
+                ListProducts();
+            }
         }
     }
 }
