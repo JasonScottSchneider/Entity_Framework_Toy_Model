@@ -1,0 +1,11 @@
+/*
+  Note: a path must be set, EVERY TIME, for dotnet ef in order for the build to succeed
+  export PATH="$PATH:$HOME/.dotnet/tools/"
+*/
+{
+	"folders": [
+		{
+			"path": "WorkingWithEFCore"
+		}
+	]
+}
